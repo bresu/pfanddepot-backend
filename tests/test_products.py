@@ -20,6 +20,8 @@ def test_create_product_with_minimal_data(client):
     assert data["deposit_cents"] == 25
     assert data["created_at"] is not None
     assert data["updated_at"] is not None
+    assert data["product_type"] == "bottle"
+    assert data["is_verified"] is True
 
 
 def test_create_product_with_full_data(client):
@@ -33,6 +35,8 @@ def test_create_product_with_full_data(client):
             "return_locations": ["Billa", "Spar", "Hofer"],
             "thumbnail_url": "/static/bottle-thumbnails/9009876543210.jpg",
             "deposit_cents": 25,
+            "product_type": "can",
+            "is_verified": False,
         },
     )
 
@@ -46,7 +50,8 @@ def test_create_product_with_full_data(client):
     assert data["return_locations"] == ["Billa", "Spar", "Hofer"]
     assert data["thumbnail_url"] == "/static/bottle-thumbnails/9009876543210.jpg"
     assert data["deposit_cents"] == 25
-
+    assert data["product_type"] == "can"
+    assert data["is_verified"] is False
 
 def test_get_all_products(client):
     client.post(
@@ -182,3 +187,47 @@ def test_delete_product_returns_404_for_unknown_barcode(client):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Product not found"
+
+
+def test_wrong_supermarket_name_in_return_locations(client):
+    response = client.post(
+        "/products",
+        json={
+            "barcode": "9001234567890",
+            "name": "Test Bottle",
+            "return_locations": ["UnknownSupermarket"],
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Input should be 'Billa', 'Spar', 'Hofer', 'Lidl' or 'Penny'"
+
+def test_create_product_with_product_type_and_return_locations(client):
+    response = client.post(
+        "/products",
+        json={
+            "barcode": "9001234567890",
+            "name": "Test Can",
+            "product_type": "can",
+            "return_locations": ["Billa", "Spar"],
+        },
+    )
+
+    assert response.status_code == 201
+
+    data = response.json()
+
+    assert data["product_type"] == "can"
+    assert data["return_locations"] == ["Billa", "Spar"]
+
+def test_create_product_rejects_invalid_product_type(client):
+    response = client.post(
+        "/products",
+        json={
+            "barcode": "123456789",
+            "name": "Invalid Product",
+            "product_type": "invalid",
+        },
+    )
+
+    assert response.status_code == 422
