@@ -10,7 +10,7 @@ from app.db.session import engine
 from app.models.scan import Scan  # noqa: F401
 
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) # alembc does this now
 
 app = FastAPI(title=settings.app_name)
 
